@@ -1,0 +1,106 @@
+.section { 
+    padding: 10px 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 700px;
+    height: 85vh;
+    overflow: auto;
+}
+
+.title {
+    padding: 10px 20px;
+    text-align: center;
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+}
+
+.title-data{
+    font-size: 1rem;
+}
+
+.calculation-mode select {
+    width: 300px;
+    height: 30px;
+    padding: 5px;
+    border: none;
+    outline: none;
+    background-color: rgb(0, 73, 245);
+    color: #fff;
+    margin-left: 30px;
+}
+
+.calculation-mode select option{
+    height: 40px;
+    padding: 5px;
+    border: none;
+    outline: none;
+    background-color: rgb(0, 73, 245);
+    color: #fff;
+    margin-left: 30px;
+}
+
+.input-data-form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-data .container-input{
+    display: flex;
+    flex-direction: column;
+}
+
+.title-data {
+    padding: 10px 5px;
+}
+
+.input-data {
+    width: 100%;
+    height: 35px;
+    border-radius: 5px;
+    outline: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.10), 0 6px 6px rgba(0,0,0,0.10);
+}
+
+.button-calculator {
+    width: 100%;
+    padding: 10px 0;
+    
+    margin-top: 10px;
+
+    border-radius: 20px;
+
+    background-color: rgb(0, 73, 245);
+    color: white;
+
+    font-size: 1rem;
+}
+
+.button-calculator:hover {
+
+    background-color: rgb(36, 124, 247);
+    color: white;
+}
+
+.option-buttons button{
+    background-color: #8f0707;
+    color: #fff;
+    padding: 5px 5px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+.option-buttons button:hover{
+    background-color:  #f94646;
+}
+
+@media (min-width: 300px) {
+    .calculation-mode select {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+}
