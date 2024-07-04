@@ -3,9 +3,6 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import './style.css';
 
 const calculateIPDetails = (ip, mask) => {
-    const ipToBinary = (ip) => {
-        return ip.split('.').map(octet => parseInt(octet, 10).toString(2).padStart(8, '0')).join('.');
-    };
 
     const maskToCidr = (mask) => {
         return mask.split('.')
@@ -78,7 +75,10 @@ const calculateIPDetails = (ip, mask) => {
     const validateMask = (mask) => {
         const maskParts = mask.split('.');
         if (maskParts.length !== 4) return false;
-        const binaryMask = maskParts.map(part => parseInt(part, 10).toString(2).padStart(8, '0')).join('');
+        const binaryMask = maskParts.map(part => parseInt(part, 10)
+            .toString(2)
+            .padStart(8, '0'))
+            .join('');
         return /^1*0*$/.test(binaryMask);
     };
 
@@ -87,13 +87,8 @@ const calculateIPDetails = (ip, mask) => {
     }
 
     const cidr = maskToCidr(mask);
-    if (cidr > 32 || cidr < 0) {
-        throw new Error("Máscara inválida.");
-    }
-
     const ipClass = getIPClass(ip);
     const { numSubnets, numHosts } = calculateSubnetsAndHosts(cidr, ipClass);
-    const binaryMask = ipToBinary(mask);
     const { firstIP, lastIP, broadcastIP } = ipToRange(ip, cidr);
 
     return {
@@ -102,7 +97,6 @@ const calculateIPDetails = (ip, mask) => {
         numSubnets,
         numHosts,
         newMask: mask,
-        binaryMask,
         cidr,
         firstIP,
         lastIP,
