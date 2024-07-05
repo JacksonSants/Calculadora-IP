@@ -142,29 +142,45 @@ const Section = () => {
         event.preventDefault();
         try {
             const { ip, mask } = inputData;
+        if (!validateIP(ip)) {
+            setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
+            setResults([]);
+            return;
 
-            if (!validateIP(ip)) {
-                setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
-                setResults([]);
-                return;
-            }
-            if (!/^\d+(\.\d+){3}$/.test(ip)) {
-                setResults([]);
-                setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
-                return false;
-            }
-            const result = calculateIPDetails(ip, mask);
-            setResults([result]);
-            setError(null);
+        }
+        if (!/^\d+(\.\d+){3}$/.test(ip)) {
+            setResults([]);
+            setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
+            return false;
+
+        }
+        if (ip.startsWith("127")) {
+            setError("ERROR: Endereço de loopback. Este endereço é um endereço reservado.");
+            setResults([]);
+            return false;
+        }
+        const broadcastAddress = getBroadcastAddress(ip, mask);
+
+        if (broadcastAddress === ip) {
+            setError("ERROR: Endereço de broadcast. Este endereço é um endereço reservado.");
+            setResults([]);
+            return false;
+        }
+
+
+        const result = calculateIPDetails(ip, mask);
+        setResults([result]);
+        setError(null);
         } catch (err) {
             setError(err.message);
         }
     };
-
     const validateIP = (ip) => {
         const ipParts = ip.split('.');
-        if (ipParts.length !== 4) return false;if (ipParts.every(part => part === '0')) return false;
+        if (ipParts.length !== 4) return false;
+        if (ipParts.every(part => part === '0')) return false;
         if (ipParts.some(part => part === '255')) return true;
+        if (ipParts[0] === '127') return false;
         return ipParts.every(part => {
             const num = parseInt(part, 10);
             return num >= 0 && num <= 255;
@@ -186,12 +202,24 @@ const Section = () => {
                 return 0;
             }).join('.');
 
+            const broadcastAddress = getBroadcastAddress(ip, mask);
+            if (broadcastAddress === ip) {
+                setError("ERROR: Endereço de broadcast. Este endereço é um endereço reservado.");
+                setResults([]);
+                return false;
+            }
             const result = calculateIPDetails(ip, mask);
             setResults([result]);
             setError(null);
         } catch (err) {
             setError(err.message);
         }
+    };
+    const getBroadcastAddress = (ip, mask) => {
+        const ipParts = ip.split('.').map(Number);
+        const maskParts = mask.split('.').map(Number);
+        const broadcastParts = ipParts.map((part, i) => part | ~maskParts[i] & 255);
+        return broadcastParts.join('.');
     };
 
     return (
@@ -247,7 +275,7 @@ const Section = () => {
                             <option value='255.255.255.248'>255.255.255.248/29</option>
                             <option value='255.255.255.252'>255.255.255.252/30</option>
                         </select>
-                        <button type='submit' className='button-calculator'>Calcular IP/Máscara</button>
+                        <button type='submit' className='button-calculator'>Calcular IP</button>
                     </form>
                 ) : (
                     <form className='input-data-form' onSubmit={handleCidrSubmit}>

@@ -133,6 +133,10 @@ select option{
 
 }
 
+::-webkit-scrollbar {
+    background: transparent;
+}
+
 @media (min-width: 300px) {
     .calculation-mode select {
         margin-left: 0;
