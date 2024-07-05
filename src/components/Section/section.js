@@ -3,6 +3,9 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import './style.css';
 
 const calculateIPDetails = (ip, mask) => {
+    const maskToBinary = (ip) => {
+        return ip.split('.').map(octet => parseInt(octet, 10).toString(2).padStart(8, '0')).join('.');
+    };
 
     const maskToCidr = (mask) => {
         return mask.split('.')
@@ -88,6 +91,7 @@ const calculateIPDetails = (ip, mask) => {
 
     const cidr = maskToCidr(mask);
     const ipClass = getIPClass(ip);
+    const binaryMask = maskToBinary(mask);
     const { numSubnets, numHosts } = calculateSubnetsAndHosts(cidr, ipClass);
     const { firstIP, lastIP, broadcastIP } = ipToRange(ip, cidr);
 
@@ -96,7 +100,7 @@ const calculateIPDetails = (ip, mask) => {
         ipClass,
         numSubnets,
         numHosts,
-        newMask: mask,
+        binaryMask,
         cidr,
         firstIP,
         lastIP,
@@ -105,9 +109,8 @@ const calculateIPDetails = (ip, mask) => {
 };
 
 const Section = () => {
-    const [calculationMode, setCalculationMode] = useState('cidr');
+    const [calculationMode, setCalculationMode] = useState('ipMask');
     const [inputData, setInputData] = useState({ ip: '', mask: '' });
-    const [cidrData, setCidrData] = useState('');
     const [results, setResults] = useState([]);
     const [error, setError] = useState(null);
 
@@ -119,8 +122,9 @@ const Section = () => {
         setInputData({ ...inputData, [event.target.id]: event.target.value });
     };
 
-    const handleCidrChange = (event) => {
-        setCidrData(event.target.value);
+    const handleMaskChange = (event) => {
+        const mask = event.target.value;
+        setInputData({ ...inputData, mask });
     };
 
     const handleIpMaskSubmit = (event) => {
@@ -138,8 +142,8 @@ const Section = () => {
     const handleCidrSubmit = (event) => {
         event.preventDefault();
         try {
-            const [ip, cidr] = cidrData.split('/');
-            if (cidr < 0 || cidr > 32) {
+            const [ip, cidr] = inputData.cidr.split('/');
+            if (cidr < 8 || cidr > 32) {
                 throw new Error("CIDR inválido.");
             }
             const mask = Array(4).fill(0).map((_, i) => {
@@ -159,10 +163,10 @@ const Section = () => {
     return (
         <section className='section'>
             <div className='container'>
-                <h2 className='title'>API Quantum Calculator</h2>
+                <h2 className='title'>API Calculator</h2>
 
                 <div className='option-buttons'>
-                    <button onClick={() => {setResults([]);setError(null)}}>Limpar Resultados</button>
+                    <button onClick={() => { setResults([]); setError(null); }}>Limpar Resultados</button>
                 </div>
 
                 <div className='calculation-mode'>
@@ -174,7 +178,7 @@ const Section = () => {
                 </div>
                 {calculationMode === 'ipMask' ? (
                     <form className='input-data-form' onSubmit={handleIpMaskSubmit}>
-                        <h2 className='title-data'>IP/Máscara - Exemplo: 192.168.1.0/24</h2>
+                        <h2 className='title-data'>IP/Máscara - Exemplo: 192.168.1.0</h2>
                         <input
                             className='input-data'
                             type='text'
@@ -183,14 +187,31 @@ const Section = () => {
                             value={inputData.ip}
                             onChange={handleCaptureData}
                         />
-                        <input
-                            className='input-data'
-                            type='text'
-                            id='mask'
-                            placeholder='255.255.255.0'
-                            value={inputData.mask}
-                            onChange={handleCaptureData}
-                        />
+                        <select value={inputData.mask} onChange={handleMaskChange}>
+                            <option value='255.0.0.0'>255.0.0.0/8</option>
+                            <option value='255.128.0.0'>255.128.0.0/9</option>
+                            <option value='255.192.0.0'>255.192.0.0/10</option>
+                            <option value='255.224.0.0'>255.224.0.0/11</option>
+                            <option value='255.240.0.0'>255.240.0.0/12</option>
+                            <option value='255.248.0.0'>255.248.0.0/13</option>
+                            <option value='255.252.0.0'>255.252.0.0/14</option>
+                            <option value='255.254.0.0'>255.254.0.0/15</option>
+                            <option value='255.255.0.0'>255.255.0.0/16</option>
+                            <option value='255.255.128.0'>255.255.128.0/17</option>
+                            <option value='255.255.192.0'>255.255.192.0/18</option>
+                            <option value='255.255.224.0'>255.255.224.0/19</option>
+                            <option value='255.255.240.0'>255.255.240.0/20</option>
+                            <option value='255.255.248.0'>255.255.248.0/21</option>
+                            <option value='255.255.252.0'>255.255.252.0/22</option>
+                            <option value='255.255.254.0'>255.255.254.0/23</option>
+                            <option value='255.255.255.0'>255.255.255.0/24</option>
+                            <option value='255.255.255.128'>255.255.255.128/25</option>
+                            <option value='255.255.255.192'>255.255.255.192/26</option>
+                            <option value='255.255.255.224'>255.255.255.224/27</option>
+                            <option value='255.255.255.240'>255.255.255.240/28</option>
+                            <option value='255.255.255.248'>255.255.255.248/29</option>
+                            <option value='255.255.255.252'>255.255.255.252/30</option>
+                        </select>
                         <button type='submit' className='button-calculator'>Calcular IP/Máscara</button>
                     </form>
                 ) : (
@@ -201,8 +222,8 @@ const Section = () => {
                             type='text'
                             id='cidr'
                             placeholder='192.168.1.0/24'
-                            value={cidrData}
-                            onChange={handleCidrChange}
+                            value={inputData.cidr}
+                            onChange={handleCaptureData}
                         />
                         <button type='submit' className='button-calculator'>Calcular CIDR</button>
                     </form>
@@ -219,29 +240,32 @@ const Section = () => {
                                 {result.ipClass !== 'Inválido' && (
                                     <>
                                         <table>
-                                            <tr>
-                                                <th className='attribute'>IP</th>
-                                                <th className='attribute'>Classe</th>
-                                                <th className='attribute'>Número de subredes</th>
-                                                <th className='attribute'>Número de host</th>
-                                                <th className='attribute'>CIDR</th>
-                                                <th className='attribute'>Primeiro endereço</th>
-                                                <th className='attribute'>Último endereço</th>
-                                                <th className='attribute'>Endereço de Broadcast</th>
-                                            </tr>
-                                            <tr>
-                                                <td className='data-attribute'>{result.ip}</td>
-                                                <td className='data-attribute'>{result.ipClass}</td>
-                                                <td className='data-attribute'>{result.numSubnets}</td>
-                                                <td className='data-attribute'>{result.numHosts}</td>
-                                                <td className='data-attribute'>{result.cidr}</td>
-                                                <td className='data-attribute'>{result.firstIP}</td>
-                                                <td className='data-attribute'>{result.lastIP}</td>
-                                                <td className='data-attribute'>{result.broadcastIP}</td>
-                                            </tr>
+                                            <thead>
+                                                <tr>
+                                                    <th className='attribute'>IP</th>
+                                                    <th className='attribute'>Classe</th>
+                                                    <th className='attribute'>Número de subredes</th>
+                                                    <th className='attribute'>Número de hosts</th>
+                                                    <th className='attribute'>CIDR</th>
+                                                    <th className='attribute'>Primeiro endereço</th>
+                                                    <th className='attribute'>Último endereço</th>
+                                                    <th className='attribute'>Endereço de Broadcast</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td className='data-attribute'>{result.ip}</td>
+                                                    <td className='data-attribute'>{result.ipClass}</td>
+                                                    <td className='data-attribute'>{result.numSubnets}</td>
+                                                    <td className='data-attribute'>{result.numHosts}</td>
+                                                    <td className='data-attribute'>{result.cidr}</td>
+                                                    <td className='data-attribute'>{result.firstIP}</td>
+                                                    <td className='data-attribute'>{result.lastIP}</td>
+                                                    <td className='data-attribute'>{result.broadcastIP}</td>
+                                                </tr>
+                                            </tbody>
                                         </table>
-                                        
-                                        <p>Máscara Decimal: {result.newMask}</p>
+                                        <p>Máscara Decimal: {result.binaryMask}</p>
                                     </>
                                 )}
                             </div>
@@ -254,3 +278,4 @@ const Section = () => {
 };
 
 export { Section };
+

@@ -29,7 +29,7 @@
     padding: 5px;
     border: none;
     outline: none;
-    background-color: rgb(0, 73, 245);
+    background-color: #606ce4;
     color: #fff;
     margin-left: 30px;
 }
@@ -39,7 +39,7 @@
     padding: 5px;
     border: none;
     outline: none;
-    background-color: rgb(0, 73, 245);
+    background-color: #606ce4;
     color: #fff;
     margin-left: 30px;
 }
@@ -75,7 +75,7 @@
 
     border-radius: 20px;
 
-    background-color: rgb(0, 73, 245);
+    background-color: #606ce4;
     color: white;
 
     font-size: 1rem;
