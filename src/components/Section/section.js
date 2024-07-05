@@ -124,6 +124,9 @@ const Section = () => {
 
     const handleModeChange = (event) => {
         setCalculationMode(event.target.value);
+        setInputData({ ip: '', mask: '', cidr: '' });
+        setResults([]);
+        setError(null);
     };
 
     const handleCaptureData = (event) => {
@@ -146,6 +149,7 @@ const Section = () => {
                 return;
             }
             if (!/^\d+(\.\d+){3}$/.test(ip)) {
+                setResults([]);
                 setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
                 return false;
             }
