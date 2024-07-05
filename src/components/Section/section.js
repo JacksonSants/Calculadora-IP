@@ -3,7 +3,7 @@ import '@fortawesome/fontawesome-free/css/all.css';
 import './style.css';
 
 const calculateIPDetails = (ip, mask) => {
-    const maskToBinary = (ip) => {
+    const ipMaskToBinary = (ip) => {
         return ip.split('.').map(octet => parseInt(octet, 10).toString(2).padStart(8, '0')).join('.');
     };
 
@@ -86,17 +86,22 @@ const calculateIPDetails = (ip, mask) => {
     };
 
     if (!validateIP(ip) || !validateMask(mask)) {
-        throw new Error("IP ou máscara inválidos.");
+        alert("IP ou máscara inválidos.");
     }
 
     const cidr = maskToCidr(mask);
+    const binaryIp = ipMaskToBinary(ip);
     const ipClass = getIPClass(ip);
-    const binaryMask = maskToBinary(mask);
+    const binaryMask = ipMaskToBinary(mask);
     const { numSubnets, numHosts } = calculateSubnetsAndHosts(cidr, ipClass);
     const { firstIP, lastIP, broadcastIP } = ipToRange(ip, cidr);
+    const binaryFirstIp = ipMaskToBinary(firstIP);
+    const binaryLastIp = ipMaskToBinary(firstIP);
+    const binaryBroadcastIp = ipMaskToBinary(broadcastIP);
 
     return {
         ip,
+        binaryIp,
         ipClass,
         numSubnets,
         numHosts,
@@ -104,7 +109,10 @@ const calculateIPDetails = (ip, mask) => {
         cidr,
         firstIP,
         lastIP,
-        broadcastIP
+        broadcastIP,
+        binaryFirstIp,
+        binaryLastIp,
+        binaryBroadcastIp,
     };
 };
 
@@ -131,6 +139,16 @@ const Section = () => {
         event.preventDefault();
         try {
             const { ip, mask } = inputData;
+
+            if (!validateIP(ip)) {
+                setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
+                setResults([]);
+                return;
+            }
+            if (!/^\d+(\.\d+){3}$/.test(ip)) {
+                setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
+                return false;
+            }
             const result = calculateIPDetails(ip, mask);
             setResults([result]);
             setError(null);
@@ -139,12 +157,24 @@ const Section = () => {
         }
     };
 
+    const validateIP = (ip) => {
+        const ipParts = ip.split('.');
+        if (ipParts.length !== 4) return false;if (ipParts.every(part => part === '0')) return false;
+        if (ipParts.some(part => part === '255')) return true;
+        return ipParts.every(part => {
+            const num = parseInt(part, 10);
+            return num >= 0 && num <= 255;
+        });
+    };
+
     const handleCidrSubmit = (event) => {
         event.preventDefault();
         try {
             const [ip, cidr] = inputData.cidr.split('/');
-            if (cidr < 8 || cidr > 32) {
-                throw new Error("CIDR inválido.");
+            if (!validateIP(ip) || cidr < 8 || cidr > 30 || isNaN(cidr)) {
+                setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
+                setResults([]);
+                return;
             }
             const mask = Array(4).fill(0).map((_, i) => {
                 if (cidr >= (i + 1) * 8) return 255;
@@ -188,6 +218,7 @@ const Section = () => {
                             onChange={handleCaptureData}
                         />
                         <select value={inputData.mask} onChange={handleMaskChange}>
+                            <option value=''>Selecione a máscara.</option>
                             <option value='255.0.0.0'>255.0.0.0/8</option>
                             <option value='255.128.0.0'>255.128.0.0/9</option>
                             <option value='255.192.0.0'>255.192.0.0/10</option>
@@ -237,35 +268,40 @@ const Section = () => {
                     <div className='results'>
                         {results.map((result, index) => (
                             <div key={index} className='result'>
-                                {result.ipClass !== 'Inválido' && (
+                                {result.ipClass !== 'Invalid' && (
                                     <>
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th className='attribute'>IP</th>
-                                                    <th className='attribute'>Classe</th>
-                                                    <th className='attribute'>Número de subredes</th>
-                                                    <th className='attribute'>Número de hosts</th>
-                                                    <th className='attribute'>CIDR</th>
-                                                    <th className='attribute'>Primeiro endereço</th>
-                                                    <th className='attribute'>Último endereço</th>
-                                                    <th className='attribute'>Endereço de Broadcast</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td className='data-attribute'>{result.ip}</td>
-                                                    <td className='data-attribute'>{result.ipClass}</td>
-                                                    <td className='data-attribute'>{result.numSubnets}</td>
-                                                    <td className='data-attribute'>{result.numHosts}</td>
-                                                    <td className='data-attribute'>{result.cidr}</td>
-                                                    <td className='data-attribute'>{result.firstIP}</td>
-                                                    <td className='data-attribute'>{result.lastIP}</td>
-                                                    <td className='data-attribute'>{result.broadcastIP}</td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                        <p>Máscara Decimal: {result.binaryMask}</p>
+                                        <div className='card'>
+                                            <h3 className='text-view'>Protocolo de Internet - IP</h3>
+                                            <h4 className='text-information'>{result.ip}</h4>
+                                            <h4 className='text-information'>{result.binaryIp}</h4>
+
+                                            <h3 className='text-view'>Máscara</h3>
+                                            <h4 className='text-information'><p>Máscara Decimal: {result.binaryMask}</p></h4>
+
+                                            <h3 className='text-view'>Classe</h3>
+                                            <h4 className='text-information'>{result.ipClass}</h4>
+
+                                            <h3 className='text-view'>Número de subredes</h3>
+                                            <h4 className='text-information'>{result.numSubnets}</h4>
+
+                                            <h3 className='text-view'>Número de hosts</h3>
+                                            <h4 className='text-information'>{result.numHosts}</h4>
+
+                                            <h3 className='text-view'>CIDR</h3>
+                                            <h4 className='text-information'>{result.cidr}</h4>
+
+                                            <h3 className='text-view'>Primeiro endereço</h3>
+                                            <h4 className='text-information'>{result.firstIP}</h4>
+                                            <h4 className='text-information'>{result.binaryFirstIp}</h4>
+
+                                            <h3 className='text-view'>Último endereço</h3>
+                                            <h4 className='text-information'>{result.lastIP}</h4>
+                                            <h4 className='text-information'>{result.binaryLastIp}</h4>
+
+                                            <h3 className='text-view'>Endereço de Broadcast</h3>
+                                            <h4 className='text-information'>{result.broadcastIP}</h4>
+                                            <h4 className='text-information'>{result.binaryBroadcastIp}</h4>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -278,4 +314,3 @@ const Section = () => {
 };
 
 export { Section };
-
