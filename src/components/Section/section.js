@@ -105,6 +105,7 @@ const calculateIPDetails = (ip, mask) => {
         ipClass,
         numSubnets,
         numHosts,
+        mask,
         binaryMask,
         cidr,
         firstIP,
@@ -166,7 +167,11 @@ const Section = () => {
             setResults([]);
             return false;
         }
-
+        if (mask === '') {
+            setError("Selecione uma máscara.");
+            setResults([]);
+            return;
+        }
 
         const result = calculateIPDetails(ip, mask);
         setResults([result]);
@@ -175,6 +180,7 @@ const Section = () => {
             setError(err.message);
         }
     };
+    
     const validateIP = (ip) => {
         const ipParts = ip.split('.');
         if (ipParts.length !== 4) return false;
@@ -308,7 +314,8 @@ const Section = () => {
                                             <h4 className='text-information'>{result.binaryIp}</h4>
 
                                             <h3 className='text-view'>Máscara</h3>
-                                            <h4 className='text-information'><p>Máscara Decimal: {result.binaryMask}</p></h4>
+                                            <h4 className='text-information'><p>Máscara Decimal: {result.mask}</p></h4>
+                                            <h4 className='text-information'><p>Máscara Binário: {result.binaryMask}</p></h4>
 
                                             <h3 className='text-view'>Classe</h3>
                                             <h4 className='text-information'>{result.ipClass}</h4>
