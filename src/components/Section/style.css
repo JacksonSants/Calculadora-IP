@@ -6,7 +6,7 @@
 }
 
 .container {
-    width: 700px;
+    width: 1000px;
     height: 85vh;
     overflow: auto;
 }
@@ -127,14 +127,46 @@ select option{
 }
 
 .card .text-information {
-    padding: 3px;
+    padding: 4px;
     background-color: #404143;
     color: #fff;
+    border: 1px solid #fff;
 
 }
 
+.card-range {
+    display: flex;
+}
+
+.table-view {
+    width: 100%;
+}
+
+.thead .thead-view {
+    background-color: #606ce4;
+    color: #fff;
+    width: 400px;
+}
 ::-webkit-scrollbar {
     background: transparent;
+}
+
+.table-view {
+    border-collapse: collapse;
+}
+
+.text-view-table {
+    border-collapse: collapse;
+    width: 100%;
+    text-align: center;
+    font-weight: 500;
+    padding: 20px 0;
+}
+
+tr, th, td {
+    text-align: center;
+    border: 1px solid #000;
+    padding: 10px 0;
 }
 
 @media (min-width: 300px) {

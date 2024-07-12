@@ -14,7 +14,6 @@ const calculateIPDetails = (ip, mask) => {
             .split('1')
             .length - 1;
     };
-
     const getIPClass = (ip) => {
         const firstOctet = parseInt(ip.split('.')[0], 10);
         if (firstOctet >= 0 && firstOctet <= 126) return 'A';
@@ -28,21 +27,13 @@ const calculateIPDetails = (ip, mask) => {
     };
 
     const calculateSubnetsAndHosts = (cidr, ipClass) => {
-        let subnetBits, numHosts;
-        if (ipClass === 'A') {
-            subnetBits = cidr - 8;
-        } else if (ipClass === 'B') {
-            subnetBits = cidr - 16;
-        } else if (ipClass === 'C') {
-            subnetBits = cidr - 24;
-        } else {
-            subnetBits = 0;
-        }
+        let subnetBits = cidr - (ipClass === 'A' ? 8 : ipClass === 'B' ? 16 : ipClass === 'C' ? 24 : 0);
         if (subnetBits < 0) subnetBits = 0;
 
-        numHosts = Math.pow(2, 32 - cidr) - 2;
+        const numSubnets = Math.pow(2, subnetBits);
+        const numHosts = Math.pow(2, 32 - cidr) - 2;
 
-        return { numSubnets: Math.pow(2, subnetBits), numHosts };
+        return { numSubnets, numHosts };
     };
 
     const ipToRange = (ip, cidr) => {
@@ -66,6 +57,51 @@ const calculateIPDetails = (ip, mask) => {
         };
     };
 
+    const generateSubnets = (ip, cidr) => {
+        const numSubnets = Math.pow(2, cidr % 8);
+        const numHosts = Math.pow(2, 32 - cidr) - 2;
+        const subnetSize = numHosts + 2; // Including network and broadcast addresses
+
+        const ipInt = ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0);
+
+        const subnets = [];
+        for (let i = 0; i < numSubnets; i++) {
+            const subnetInt = ipInt + (i * subnetSize);
+            const network = [
+                ((subnetInt - 1) >>> 24) & 255,
+                ((subnetInt - 1) >>> 16) & 255,
+                ((subnetInt - 1) >>> 8) & 255,
+                (subnetInt - 1) & 255,
+            ].join('.');
+            const firstHost = [
+                ((subnetInt) >>> 24) & 255,
+                ((subnetInt) >>> 16) & 255,
+                ((subnetInt) >>> 8) & 255,
+                (subnetInt) & 255,
+            ].join('.');
+            const lastHost = [
+                ((subnetInt + numHosts - 1) >>> 24) & 255,
+                ((subnetInt + numHosts - 1) >>> 16) & 255,
+                ((subnetInt + numHosts - 1) >>> 8) & 255,
+                (subnetInt + numHosts - 1) & 255,
+            ].join('.');
+            const broadcast = [
+                ((subnetInt + subnetSize - 2) >>> 24) & 255,
+                ((subnetInt + subnetSize - 2) >>> 16) & 255,
+                ((subnetInt + subnetSize - 2) >>> 8) & 255,
+                (subnetInt + subnetSize - 2) & 255,
+            ].join('.');
+
+            subnets.push({
+                subnet: i + 1,
+                network,
+                range: `${firstHost} - ${lastHost}`,
+                broadcast,
+            });
+        }
+        return subnets;
+    };
+
     const validateIP = (ip) => {
         const ipParts = ip.split('.');
         if (ipParts.length !== 4) return false;
@@ -87,6 +123,7 @@ const calculateIPDetails = (ip, mask) => {
 
     if (!validateIP(ip) || !validateMask(mask)) {
         alert("IP ou máscara inválidos.");
+        return null;
     }
 
     const cidr = maskToCidr(mask);
@@ -96,8 +133,9 @@ const calculateIPDetails = (ip, mask) => {
     const { numSubnets, numHosts } = calculateSubnetsAndHosts(cidr, ipClass);
     const { firstIP, lastIP, broadcastIP } = ipToRange(ip, cidr);
     const binaryFirstIp = ipMaskToBinary(firstIP);
-    const binaryLastIp = ipMaskToBinary(firstIP);
+    const binaryLastIp = ipMaskToBinary(lastIP);
     const binaryBroadcastIp = ipMaskToBinary(broadcastIP);
+    const subnets = generateSubnets(ip, cidr);
 
     return {
         ip,
@@ -114,6 +152,7 @@ const calculateIPDetails = (ip, mask) => {
         binaryFirstIp,
         binaryLastIp,
         binaryBroadcastIp,
+        subnets
     };
 };
 
@@ -143,50 +182,22 @@ const Section = () => {
         event.preventDefault();
         try {
             const { ip, mask } = inputData;
-        if (!validateIP(ip)) {
-            setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
-            setResults([]);
-            return;
-
-        }
-        if (!/^\d+(\.\d+){3}$/.test(ip)) {
-            setResults([]);
-            setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
-            return false;
-
-        }
-        if (ip.startsWith("127")) {
-            setError("ERROR: Endereço de loopback. Este endereço é um endereço reservado.");
-            setResults([]);
-            return false;
-        }
-        const broadcastAddress = getBroadcastAddress(ip, mask);
-
-        if (broadcastAddress === ip) {
-            setError("ERROR: Endereço de broadcast. Este endereço é um endereço reservado.");
-            setResults([]);
-            return false;
-        }
-        if (mask === '') {
-            setError("Selecione uma máscara.");
-            setResults([]);
-            return;
-        }
-
-        const result = calculateIPDetails(ip, mask);
-        setResults([result]);
-        setError(null);
+            if (!validateIP(ip) || !validateMask(mask)) {
+                setError("IP ou máscara inválidos. Certifique-se de que os valores estão corretos.");
+                setResults([]);
+                return;
+            }
+            const result = calculateIPDetails(ip, mask);
+            setResults([result]);
+            setError(null);
         } catch (err) {
             setError(err.message);
         }
     };
-    
+
     const validateIP = (ip) => {
         const ipParts = ip.split('.');
         if (ipParts.length !== 4) return false;
-        if (ipParts.every(part => part === '0')) return false;
-        if (ipParts.some(part => part === '255')) return true;
-        if (ipParts[0] === '127') return false;
         return ipParts.every(part => {
             const num = parseInt(part, 10);
             return num >= 0 && num <= 255;
@@ -198,22 +209,11 @@ const Section = () => {
         try {
             const [ip, cidr] = inputData.cidr.split('/');
             if (!validateIP(ip) || cidr < 8 || cidr > 30 || isNaN(cidr)) {
-                setError("IP ou CIDR inválidos. Certifique-se de que o IP é válido e que o CIDR está entre 8 e 30.");
+                setError("IP ou CIDR inválidos. Certifique-se de que os valores estão corretos.");
                 setResults([]);
                 return;
             }
-            const mask = Array(4).fill(0).map((_, i) => {
-                if (cidr >= (i + 1) * 8) return 255;
-                if (cidr > i * 8) return 256 - Math.pow(2, 8 - (cidr % 8));
-                return 0;
-            }).join('.');
-
-            const broadcastAddress = getBroadcastAddress(ip, mask);
-            if (broadcastAddress === ip) {
-                setError("ERROR: Endereço de broadcast. Este endereço é um endereço reservado.");
-                setResults([]);
-                return false;
-            }
+            const mask = cidrToMask(cidr);
             const result = calculateIPDetails(ip, mask);
             setResults([result]);
             setError(null);
@@ -221,11 +221,22 @@ const Section = () => {
             setError(err.message);
         }
     };
-    const getBroadcastAddress = (ip, mask) => {
-        const ipParts = ip.split('.').map(Number);
-        const maskParts = mask.split('.').map(Number);
-        const broadcastParts = ipParts.map((part, i) => part | ~maskParts[i] & 255);
-        return broadcastParts.join('.');
+
+    const validateMask = (mask) => {
+        const maskParts = mask.split('.');
+        if (maskParts.length !== 4) return false;
+        const binaryMask = maskParts.map(part => parseInt(part, 10)
+            .toString(2)
+            .padStart(8, '0'))
+            .join('');
+        return /^1*0*$/.test(binaryMask);
+    };
+
+    const cidrToMask = (cidr) => {
+        return Array(4).fill(0).map((_, i) => {
+            const bits = Math.min(8, Math.max(0, cidr - i * 8));
+            return 256 - Math.pow(2, 8 - bits);
+        }).join('.');
     };
 
     return (
@@ -341,6 +352,30 @@ const Section = () => {
                                             <h4 className='text-information'>{result.broadcastIP}</h4>
                                             <h4 className='text-information'>{result.binaryBroadcastIp}</h4>
                                         </div>
+
+                                        <div>
+                                            <h2 className='text-view-table'>Detalhes da sub-rede</h2>
+                                            <table className='table-view'>
+                                                <thead className='thead'>
+                                                    <tr className='thead-view'>
+                                                    <th className='thead-view'>Subrede</th>
+                                                    <th className='thead-view'>Endereço de rede</th>
+                                                    <th className='thead-view'>Intervalo de subredes utilizaveis</th>
+                                                    <th className='thead-view'>Endereço de broadcast</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {result.subnets.map((subnet, i) => (
+                                                        <tr key={i}>
+                                                            <td>{subnet.subnet}</td>
+                                                            <td>{subnet.network}</td>
+                                                            <td>{subnet.range}</td>
+                                                            <td>{subnet.broadcast}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -352,4 +387,4 @@ const Section = () => {
     );
 };
 
-export { Section };
+export {Section};
